@@ -14,20 +14,45 @@ const dotenv_1 = require("dotenv");
 const genai_1 = require("@google/genai");
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const ai = new genai_1.GoogleGenAI({ apiKey: GEMINI_API_KEY });
+// async function main() {
+//   const response = await ai.models.generateContentStream({
+//     model: "gemini-2.5-flash",
+//     contents: "Write code for simple todo application in mern.",
+//     config: {
+//         temperature: 1,
+//         // maxOutputTokens: 1024,
+//         thinkingConfig: {
+//             thinkingBudget: -1
+//         }
+//     }
+//   });
+//   for await (const chunk of response){
+//     console.log(chunk.text)
+//   }
+// }
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        const response = yield ai.models.generateContent({
+        const chat = ai.chats.create({
             model: "gemini-2.5-flash",
-            contents: "Write code for todo application in mern.",
-            config: {
-                temperature: 1,
-                // maxOutputTokens: 1000,
-                thinkingConfig: {
-                    thinkingBudget: -1
-                }
-            }
+            history: [
+                {
+                    role: "user",
+                    parts: [{ text: "I have 2 dogs in my house." }],
+                },
+                {
+                    role: "user",
+                    parts: [{ text: "also I have 3 cats in my house." }],
+                },
+            ],
         });
-        console.log(response.text);
+        const response1 = yield chat.sendMessage({
+            message: "also I have 2 elephants in my house.",
+        });
+        console.log("Chat response 1:", response1.text);
+        const response2 = yield chat.sendMessage({
+            message: "How many paws are in my house?",
+        });
+        console.log("Chat response 2:", response2.text);
     });
 }
 main();
