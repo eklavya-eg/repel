@@ -45,6 +45,9 @@ app.post("/template", async (req, res) => {
   })
 })
 
+app.post("/chat", (req, res)=>{
+  
+})
 
 async function main() {
   const chat = ai.chats.create({
