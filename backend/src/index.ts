@@ -47,6 +47,7 @@ app.post("/template", async (req, res) => {
 
 app.post("/chat", (req, res)=>{
   const prompt = req.body.prompt;
+  callbackify;jfsl
 })
 
 async function main() {
