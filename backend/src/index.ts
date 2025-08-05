@@ -33,7 +33,7 @@ app.post("/template", async (req, res) => {
         prompts: [BASE_PROMPT, `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
         uiPrompts: [reactBasePrompt]
       })
-    } else if(ret === 'node') {
+    } else if (ret === 'node') {
       return res.json({
         prompts: [`Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
         uiPrompts: [nodeBasePrompt]
@@ -45,9 +45,26 @@ app.post("/template", async (req, res) => {
   })
 })
 
-app.post("/chat", (req, res)=>{
+app.post("/chat", async (req, res) => {
   const prompt = req.body.prompt;
-  callbackify;jfsl
+  const messages = req.body.messages;
+  const chat = ai.chats.create({
+    model: "gemini-2.5-flash",
+    history: messages,
+    config: {
+      temperature: 1,
+      // maxOutputTokens: 1024,
+      thinkingConfig: {
+        thinkingBudget: -1
+      }
+    }
+  })
+  const response = await chat.sendMessageStream({
+    message: "also I have 2 elephants in my house.",
+  });
+  for await (const chunks of response) {
+    console.log(chunks.text)
+  }
 })
 
 async function main() {
