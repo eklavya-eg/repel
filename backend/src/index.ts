@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { config } from "dotenv";
 import { BASE_PROMPT, getSystemPrompt } from "./prompts";
 import { basePrompt as nodeBasePrompt } from "./defaults/node";
-import { basePrompt as reactBasePrompt } from "./defaults/react";
+import { basePrompt, basePrompt as reactBasePrompt } from "./defaults/react";
 config()
 
 const app = express();
@@ -45,27 +45,27 @@ app.post("/template", async (req, res) => {
   })
 })
 
-app.post("/chat", async (req, res) => {
-  const prompt = req.body.prompt;
-  const messages = req.body.messages;
-  const chat = ai.chats.create({
-    model: "gemini-2.5-flash",
-    history: messages,
-    config: {
-      temperature: 1,
-      // maxOutputTokens: 1024,
-      thinkingConfig: {
-        thinkingBudget: -1
-      }
-    }
-  })
-  const response = await chat.sendMessageStream({
-    message: "also I have 2 elephants in my house.",
-  });
-  for await (const chunks of response) {
-    console.log(chunks.text)
-  }
-})
+// app.post("/chat", async (req, res) => {
+//   const prompt = req.body.prompt;
+//   const messages = req.body.messages;
+//   const chat = ai.chats.create({
+//     model: "gemini-2.5-flash",
+//     history: messages,
+//     config: {
+//       temperature: 1,
+//       // maxOutputTokens: 1024,
+//       thinkingConfig: {
+//         thinkingBudget: -1
+//       }
+//     }
+//   })
+//   const response = await chat.sendMessageStream({
+//     message: prompt,
+//   });
+//   for await (const chunks of response) {
+//     console.log(chunks.text)
+//   }
+// })
 
 async function main() {
   const chat = ai.chats.create({
@@ -73,15 +73,16 @@ async function main() {
     history: [
       {
         role: "user",
-        parts: [{ text: "I have 2 dogs in my house." }],
+        parts: [{ text: BASE_PROMPT }],
       },
       {
         role: "user",
-        parts: [{ text: "also I have 3 cats in my house." }],
+        parts: [{ text: reactBasePrompt }],
       },
     ],
     config: {
       temperature: 1,
+      systemInstruction: getSystemPrompt(),
       // maxOutputTokens: 1024,
       thinkingConfig: {
         thinkingBudget: -1
@@ -90,13 +91,14 @@ async function main() {
   });
 
   const response = await chat.sendMessageStream({
-    message: "also I have 2 elephants in my house.",
+    message: "build frontend for real-time chat app",
   });
   for await (const chunks of response) {
     console.log(chunks.text)
   }
 }
 
+main()
 app.listen(3000, () => {
   console.log("✅ PORT -> 3000")
 })

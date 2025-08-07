@@ -48,17 +48,42 @@ app.post("/template", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const ret = response.text.split("\n")[0].split(" ")[0];
         if (ret === 'react') {
             return res.json({
-                prompts: [prompts_1.BASE_PROMPT, react_1.basePrompt]
+                prompts: [prompts_1.BASE_PROMPT, `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${react_1.basePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
+                uiPrompts: [react_1.basePrompt]
             });
         }
-        else {
-            return res.json({ prompts: [prompts_1.BASE_PROMPT, node_1.basePrompt] });
+        else if (ret === 'node') {
+            return res.json({
+                prompts: [`Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${react_1.basePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
+                uiPrompts: [node_1.basePrompt]
+            });
         }
     }
     return res.status(403).json({
         message: "error"
     });
 }));
+// app.post("/chat", async (req, res) => {
+//   const prompt = req.body.prompt;
+//   const messages = req.body.messages;
+//   const chat = ai.chats.create({
+//     model: "gemini-2.5-flash",
+//     history: messages,
+//     config: {
+//       temperature: 1,
+//       // maxOutputTokens: 1024,
+//       thinkingConfig: {
+//         thinkingBudget: -1
+//       }
+//     }
+//   })
+//   const response = await chat.sendMessageStream({
+//     message: prompt,
+//   });
+//   for await (const chunks of response) {
+//     console.log(chunks.text)
+//   }
+// })
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, e_1, _b, _c;
@@ -67,15 +92,16 @@ function main() {
             history: [
                 {
                     role: "user",
-                    parts: [{ text: "I have 2 dogs in my house." }],
+                    parts: [{ text: prompts_1.BASE_PROMPT }],
                 },
                 {
                     role: "user",
-                    parts: [{ text: "also I have 3 cats in my house." }],
+                    parts: [{ text: react_1.basePrompt }],
                 },
             ],
             config: {
                 temperature: 1,
+                systemInstruction: (0, prompts_1.getSystemPrompt)(),
                 // maxOutputTokens: 1024,
                 thinkingConfig: {
                     thinkingBudget: -1
@@ -83,7 +109,7 @@ function main() {
             }
         });
         const response = yield chat.sendMessageStream({
-            message: "also I have 2 elephants in my house.",
+            message: "build frontend for real-time chat app",
         });
         try {
             for (var _d = true, response_1 = __asyncValues(response), response_1_1; response_1_1 = yield response_1.next(), _a = response_1_1.done, !_a; _d = true) {
@@ -102,6 +128,7 @@ function main() {
         }
     });
 }
+main();
 app.listen(3000, () => {
     console.log("✅ PORT -> 3000");
 });
