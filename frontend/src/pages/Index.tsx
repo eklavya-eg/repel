@@ -10,13 +10,14 @@ export default function Index() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleCreateWebsite = async () => {
+  const handleCreateWebsite = async (e: React.FormEvent) => {
+    e.preventDefault()
     if (!prompt.trim()) return;
     
     setIsLoading(true);
     // Simulate a brief loading state for UX
     setTimeout(() => {
-      navigate("/create", { state: { prompt } });
+      navigate("/build", { state: { prompt } });
     }, 800);
   };
 

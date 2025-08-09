@@ -1,42 +1,18 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import Editor from "@monaco-editor/react";
-import {
-  ArrowLeft,
-  Check,
-  Clock,
-  FileText,
-  Folder,
-  FolderOpen,
-  Image,
-  Code,
-  Settings,
-  Palette,
-  Globe,
-  Download,
-  Play,
-  Eye,
-  ChevronLeft,
-  ChevronRight,
-  Send,
-  MessageSquare
-} from "lucide-react";
+import { ArrowLeft, Check, Clock, FileText, Folder, FolderOpen, Image, Code, Settings, Palette, Globe, Download, Eye, ChevronLeft, ChevronRight, Send, MessageSquare } from "lucide-react";
+import { BACKEND_URL } from "@/config";
+import { parseXml } from "@/steps";
+import { type Step } from "@/types";
+import axios from "axios";
 
-interface Step {
-  id: string;
-  title: string;
-  description: string;
-  status: 'pending' | 'active' | 'completed';
-  duration?: string;
-}
 
 interface FileNode {
   name: string;
@@ -46,11 +22,11 @@ interface FileNode {
   language?: string;
 }
 
-export default function Create() {
+export default function Build() {
   const location = useLocation();
   const navigate = useNavigate();
   const prompt = location.state?.prompt || "";
-  
+
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<string | null>('index.html');
@@ -63,7 +39,33 @@ export default function Create() {
     { id: 3, type: 'system', content: 'Building responsive layout components...' }
   ]);
 
-  const steps: Step[] = [
+  const [steps, setSteps] = useState<Step[]>([]);
+  const [templateSet, setTemplateSet] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const init = async () => {
+    if (!prompt.trim()) {
+      navigate("/");
+    }
+    const response = await axios.post(`${BACKEND_URL}/template`, {
+      prompt: prompt.trim()
+    })
+    setTemplateSet(true);
+    const { prompts, uiPrompts } = response.data;
+    // setSteps(parseXml(uiPrompts[0]).map((step: Step) => (
+    //   { ...step }
+    // )));
+    setSteps(parseXml(uiPrompts[0]));
+    setLoading(true);
+  }
+
+  useEffect(() => {
+    init();
+  }, [])
+
+
+
+
+  const stepss: Step[] = [
     {
       id: 'analyze',
       title: 'Analyzing Requirements',
@@ -487,13 +489,12 @@ Just upload all files and you're live!`
   const renderFileTree = (node: FileNode, path: string = '', level: number = 0) => {
     const currentPath = path ? `${path}/${node.name}` : node.name;
     const isExpanded = expandedFolders.has(currentPath);
-    
+
     return (
       <div key={currentPath} className="" >
         <div
-          className={`flex items-center gap-2 py-1 px-2 overflow-hidden hover:bg-gray-100 cursor-pointer rounded ${
-            selectedFile === currentPath ? 'bg-blue-50 text-blue-700' : ''
-          }`}
+          className={`flex items-center gap-2 py-1 px-2 overflow-hidden hover:bg-gray-100 cursor-pointer rounded ${selectedFile === currentPath ? 'bg-blue-50 text-blue-700' : ''
+            }`}
           style={{ paddingLeft: `${level * 12 + 8}px` }}
           onClick={() => {
             if (node.type === 'folder') {
@@ -543,11 +544,11 @@ Just upload all files and you're live!`
     const findFile = (node: FileNode, path: string[]): FileNode | null => {
       if (path.length === 0) return node;
       if (node.type === 'file') return null;
-      
+
       const [first, ...rest] = path;
       const child = node.children?.find(c => c.name === first);
       if (!child) return null;
-      
+
       return rest.length === 0 ? child : findFile(child, rest);
     };
 
@@ -647,13 +648,12 @@ Just upload all files and you're live!`
               <div className="space-y-4">
                 {steps.map((step, index) => (
                   <div key={step.id} className="flex items-start gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      step.status === 'completed'
-                        ? 'bg-green-100 text-green-600'
-                        : step.status === 'active'
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${step.status === 'completed'
+                      ? 'bg-green-100 text-green-600'
+                      : step.status === 'active'
                         ? 'bg-blue-100 text-blue-600'
                         : 'bg-gray-100 text-gray-400'
-                    }`}>
+                      }`}>
                       {step.status === 'completed' ? (
                         <Check className="w-4 h-4" />
                       ) : step.status === 'active' ? (
@@ -664,10 +664,9 @@ Just upload all files and you're live!`
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className={`text-sm font-medium ${
-                          step.status === 'completed' ? 'text-green-700' :
+                        <h3 className={`text-sm font-medium ${step.status === 'completed' ? 'text-green-700' :
                           step.status === 'active' ? 'text-blue-700' : 'text-gray-500'
-                        }`}>
+                          }`}>
                           {step.title}
                         </h3>
                         {step.status === 'completed' && (
@@ -696,14 +695,12 @@ Just upload all files and you're live!`
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-3">
                 {chatMessages.map((message) => (
-                  <div key={message.id} className={`flex ${
-                    message.type === 'user' ? 'justify-end' : 'justify-start'
-                  }`}>
-                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${
-                      message.type === 'user'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-800'
+                  <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'
                     }`}>
+                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${message.type === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-800'
+                      }`}>
                       {message.content}
                     </div>
                   </div>
