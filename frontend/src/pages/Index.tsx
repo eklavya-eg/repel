@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/uicomponents/ui/button";
+import { Textarea } from "@/uicomponents/ui/textarea";
+import { Card, CardContent } from "@/uicomponents/ui/card";
 import { ArrowRight, Sparkles, Code, Globe, Zap, Star, Rocket, Palette } from "lucide-react";
 
 export default function Index() {

@@ -11,7 +11,7 @@ export interface Step {
   title: string;
   description: string;
   type: StepType;
-  status: 'pending' | 'in-progress' | 'completed';
+  status: 'pending' | 'active' | 'completed';
   code?: string;
   path?: string;
 }
@@ -32,4 +32,12 @@ export interface FileItem {
 export interface FileViewerProps {
   file: FileItem | null;
   onClose: () => void;
+}
+
+export interface FileNode {
+  name: string;
+  type: 'file' | 'folder';
+  children?: FileNode[];
+  content?: string;
+  language?: string;
 }
