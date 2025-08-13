@@ -545,7 +545,7 @@ Just upload all files and you're live!`
             <ScrollArea className="h-64">
               <div className="space-y-4">
                 {steps.map((step, index) => (
-                  <div key={step.id} className="flex items-start gap-3">
+                  <div key={index} className="flex items-start gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${step.status === 'completed'
                       ? 'bg-green-100 text-green-600'
                       : step.status === 'active'
