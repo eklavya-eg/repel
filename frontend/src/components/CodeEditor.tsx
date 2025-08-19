@@ -10,6 +10,10 @@ interface props {
 export default function CodeEditor({
   fileStructure
 }: props) {
+  const [isFileExplorerCollapsed, setIsFileExplorerCollapsed] = useState<boolean>(true)
+  const [selectedFile, setSelectedFile] = useState<string | null>('index.html');
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['src', 'components']));
+
 
   const toggleFolder = (folderPath: string) => {
     setExpandedFolders(prev => {
