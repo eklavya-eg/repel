@@ -1,5 +1,6 @@
 import type { FileNode } from "@/types";
 import { Button } from "@/uicomponents/ui/button";
+import { Editor } from "@monaco-editor/react";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { Badge, ChevronLeft, ChevronRight, Code, Eye, FileIcon, Folder, FolderOpen } from "lucide-react";
 import { useState } from "react";
@@ -52,7 +53,7 @@ export default function CodeEditor({
 
     const pathParts = filePath.split('/').filter(p => p !== 'my-website');
     const file = findFile(fileStructure, pathParts);
-    return file?.content || '// File content will be generated...';
+    return file?.content || '';
   };
   const renderFileTree = (node: FileNode, path: string = '', level: number = 0) => {
     const currentPath = path ? `${path}/${node.name}` : node.name;

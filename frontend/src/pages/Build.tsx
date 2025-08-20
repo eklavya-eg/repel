@@ -86,7 +86,7 @@ export default function Build() {
       title: 'Generating Components',
       description: 'Building reusable UI components and sections',
       type: StepType.CreateFile,
-      status: 'in-progress'
+      status: 'active'
     },
     {
       id: 5,
