@@ -543,6 +543,9 @@ Just upload all files and you're live!`
             </div>
 
             <ScrollArea className="h-64">
+
+
+              a
               <div className="space-y-4">
                 {steps.map((step, index) => (
                   <div key={index} className="flex items-start gap-3">
