@@ -9,11 +9,18 @@ export enum StepType {
 export interface Step {
   id: number;
   title: string;
-  description: string;
   type: StepType;
   status: 'pending' | 'active' | 'completed';
   code?: string;
   path?: string;
+}
+
+export interface FileNode {
+  name: string;
+  type: 'file' | 'folder';
+  children?: FileNode[];
+  content?: string;
+  path: string;
 }
 
 export interface Project {
@@ -34,10 +41,10 @@ export interface FileViewerProps {
   onClose: () => void;
 }
 
-export interface FileNode {
-  name: string;
-  type: 'file' | 'folder';
-  children?: FileNode[];
-  content?: string;
-  language?: string;
+
+export interface llmMessage  {
+  role: "user" | "model",
+  parts: [llmMessageText]
 }
+
+export interface llmMessageText { text: string }

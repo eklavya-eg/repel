@@ -6,28 +6,20 @@ import { Badge } from "@/uicomponents/ui/badge";
 import { ScrollArea } from "@/uicomponents/ui/scroll-area";
 import { Separator } from "@/uicomponents/ui/separator";
 import { Input } from "@/uicomponents/ui/input";
-import { ArrowLeft, Check, Clock, FileText, Folder, FolderOpen, Image, Code, Settings, Palette, Globe, Download, Eye, ChevronLeft, ChevronRight, Send, MessageSquare } from "lucide-react";
+import { ArrowLeft, Check, Clock, FileText, Folder, FolderOpen, Image, Code, Settings, Palette, Globe, Download, Eye, ChevronLeft, ChevronRight, Send, MessageSquare, Backpack } from "lucide-react";
 import { BACKEND_URL } from "@/config";
-import { parseXml } from "@/steps";
-import { StepType, type Step } from "@/types";
+import { parseXmll } from "@/steps";
+import { StepType, type Step, llmMessage, llmMessageText } from "@/types";
 import axios from "axios";
 import CodeEditor from "@/components/CodeEditor";
-
-
-interface FileNode {
-  name: string;
-  type: 'file' | 'folder';
-  children?: FileNode[];
-  content?: string;
-  language?: string;
-}
+import { setDefaultAutoSelectFamily } from "net";
+import { type FileNode } from "@/types";
 
 export default function Build() {
   const location = useLocation();
   const navigate = useNavigate();
-  const prompt = location.state?.prompt || "";
+  const [prompt, setPrompt] = useState<string>(location.state?.prompt || "");
 
-  const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [chatMessage, setChatMessage] = useState("");
   const [chatMessages, setChatMessages] = useState([
@@ -35,31 +27,85 @@ export default function Build() {
     { id: 2, type: 'system', content: 'Created design system with modern blue theme.' },
     { id: 3, type: 'system', content: 'Building responsive layout components...' }
   ]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [files, setFiles] = useState<FileNode[]>(0);
+  const [llmMsg, setLlmMsg] = useState<llmMessage[]>([]);
+  const [steps, setSteps] = useState<Step[]>([]);
+  const [templateSet, setTemplateSet] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const init = async () => {
+    if (!prompt.trim()) {
+      navigate("/");
+    }
+    const response = await axios.post(`${BACKEND_URL}/template`, {
+      prompt: prompt.trim()
+    })
+    setTemplateSet(true);
+    const { prompts, uiPrompts } = response.data;
+    // setSteps(parseXmll(uiPrompts[0]).map((step: Step) => (
+    //   { ...step }
+    // )));
+    setSteps(parseXmll(uiPrompts[0]));
+    setLlmMsg(prompts.map((msg: string) => {
+      return {
+        role: "user",
+        parts: [{ text: msg }]
+      }
+    }))
+    setLoading(true);
+    const chatresponse = await axios.post(`${BACKEND_URL}/chat`, {
+      prompt: prompt,
+      messages: llmMsg
+    })
+    const initllmres = chatresponse.data.response
+    setLlmMsg([...llmMsg, {
+      role: "model",
+      parts: [{
+        text: initllmres
+      }]
+    }])
+    setSteps([...steps, ...parseXmll(initllmres)])
+    setLoading(false)
+  }
 
-  // const [steps, setSteps] = useState<Step[]>([]);
-  // const [templateSet, setTemplateSet] = useState<boolean>(false);
-  // const [loading, setLoading] = useState<boolean>(false);
-  // const init = async () => {
-  //   if (!prompt.trim()) {
-  //     navigate("/");
-  //   }
-  //   const response = await axios.post(`${BACKEND_URL}/template`, {
-  //     prompt: prompt.trim()
-  //   })
-  //   setTemplateSet(true);
-  //   const { prompts, uiPrompts } = response.data;
-  //   // setSteps(parseXml(uiPrompts[0]).map((step: Step) => (
-  //   //   { ...step }
-  //   // )));
-  //   setSteps(parseXml(uiPrompts[0]));
-  //   setLoading(true);
-  // }
+  useEffect(() => {
+    init();
+  }, [])
 
-  // useEffect(() => {
-  //   init();
-  // }, [])
+  useEffect(() => {
+    const myFiles: FileNode[] = [...files]
+    let updateHappened = false
+    steps.map(step => {
+      if (step.status === "pending" && step.type == StepType.CreateFile) {
+        const pathNodes: string[] = step.path?.split("/") ?? [];
+        let newFolder = ""
+        if (pathNodes.length == 1 && step.code) {
+          const file = myFiles.find(({ name, path, type }) => name === step.title && step.path===path && type==='file')
+          if (!file) {
+            myFiles.push({
+              name: step.title,
+              type: "file",
+              content: step.code,
+              path: step.path ?? ""
+            })
+          } else {
+            file.content = step.code
+          }
+        } else {
+          for (let i = 0; i < pathNodes.length-1; i++) {
+            let folder = myFiles.find(({name, type, content})=>name===pathNodes[i] && type==="folder" && content===undefined)
+            if(!folder){
+              
+            }
 
-  const steps: Step[] = [
+  
+          }
+        }
+      }
+    })
+  }, [steps])
+
+  const stepss: Step[] = [
     {
       id: 1,
       title: 'Analyzing Requirements',
@@ -122,7 +168,7 @@ export default function Build() {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="RTTTT5viewport" content="width=device-width, initial-scale=1.0">
     <title>My Beautiful Website</title>
     <link rel="stylesheet" href="styles/main.css">
 </head>
@@ -543,9 +589,6 @@ Just upload all files and you're live!`
             </div>
 
             <ScrollArea className="h-64">
-
-
-              a
               <div className="space-y-4">
                 {steps.map((step, index) => (
                   <div key={index} className="flex items-start gap-3">
@@ -595,14 +638,14 @@ Just upload all files and you're live!`
 
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-3">
-                {chatMessages.map((message) => (
-                  <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'
+                {llmMsg.map((message, index) => (
+                  <div key={index} className={`flex ${message.role === "user" ? 'justify-end' : 'justify-start'
                     }`}>
-                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${message.type === 'user'
+                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${message.role === "user"
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-800'
                       }`}>
-                      {message.content}
+                      {message.parts[0].text}
                     </div>
                   </div>
                 ))}
