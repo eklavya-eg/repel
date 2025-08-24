@@ -1,15 +1,16 @@
-import { WebContainer } from "@webcontainer/api";
 import { useEffect, useState } from "react";
+import { WebContainer } from '@webcontainer/api';
 
+export function useWebContainer() {
+    const [webcontainer, setWebcontainer] = useState<WebContainer>();
 
-export default function useWebContainer() {
-    const [webContainer, setWebContainer] = useState<WebContainer | null>(null);
-    const main = async () => {
-        const webcontainer = await WebContainer.boot();
-        setWebContainer(webcontainer);
+    async function main() {
+        const webcontainerInstance = await WebContainer.boot();
+        setWebcontainer(webcontainerInstance)
     }
     useEffect(() => {
-        main()
-    }, []);
-    return webContainer
+        main();
+    }, [])
+
+    return webcontainer;
 }

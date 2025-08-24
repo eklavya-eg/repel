@@ -6,18 +6,22 @@ import { Badge } from "@/uicomponents/ui/badge";
 import { ScrollArea } from "@/uicomponents/ui/scroll-area";
 import { Separator } from "@/uicomponents/ui/separator";
 import { Input } from "@/uicomponents/ui/input";
-import { ArrowLeft, Check, Clock, FileText, Folder, FolderOpen, Image, Code, Settings, Palette, Globe, Download, Eye, ChevronLeft, ChevronRight, Send, MessageSquare, Backpack } from "lucide-react";
+import { ArrowLeft, Check, Clock, Globe, Download, Eye, Send, MessageSquare } from "lucide-react";
 import { BACKEND_URL } from "@/config";
 import { parseXmll } from "@/steps";
 import { StepType, basePrompt, type Step, type llmMessage } from "@/types";
 import axios from "axios";
 import CodeEditor from "@/components/CodeEditor";
 import { type FileNode } from "@/types";
+import Preview from "@/components/Preview";
+import { useWebContainer } from "@/hooks/useWebContainer";
+import type { FileSystemTree } from "@webcontainer/api";
 
 export default function Build() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [prompt, setPrompt] = useState<string>(location.state?.prompt || "");
+  const webcontainer = useWebContainer();
+  const [prompt] = useState<string>(location.state?.prompt || "");
 
   const [progress, setProgress] = useState(0);
   const [chatMessage, setChatMessage] = useState("");
@@ -26,10 +30,10 @@ export default function Build() {
     { id: 2, type: 'system', content: 'Created design system with modern blue theme.' },
     { id: 3, type: 'system', content: 'Building responsive layout components...' }
   ]);
-  const [currentStep, setCurrentStep] = useState(0);
   const [files, setFiles] = useState<FileNode[]>([]);
   const [llmMsg, setLlmMsg] = useState<llmMessage[]>([]);
   const [steps, setSteps] = useState<Step[]>([]);
+  const [preview, setPreview] = useState<boolean>(false);
   // const [templateSet, setTemplateSet] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const init = async () => {
@@ -70,8 +74,31 @@ export default function Build() {
   }
 
   useEffect(() => {
-    initi();
+    init();
   }, [])
+
+  useEffect(() => {
+    function fileNodesToTree(nodes: FileNode[]): FileSystemTree {
+      const tree: FileSystemTree = {};
+      for (const node of nodes) {
+        if (node.type === "file") {
+          tree[node.name] = { file: { contents: node.content ?? "" } };
+        } else {
+          tree[node.name] = { directory: fileNodesToTree(node.children ?? []), };
+        }
+      }
+      return tree;
+    }
+    const mountedFileStructure = fileNodesToTree(files);
+    console.log("check")
+    console.log(mountedFileStructure);
+    webcontainer?.mount(mountedFileStructure);
+  }, [files, webcontainer]);
+
+  
+  function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   useEffect(() => {
     const myFiles: FileNode[] = [...files]
@@ -79,6 +106,7 @@ export default function Build() {
     console.log("1", myFiles)
     let updateHappened = false;
     steps.map((step, index) => {
+      sleep(2000);
       setProgress((index + 1) * 100 / steps.length)
       if (step.status === "pending" && step.type == StepType.CreateFile) {
         updateHappened = true;
@@ -143,43 +171,33 @@ export default function Build() {
     }
   }, [steps, files])
 
-  useEffect(() => {
-    // Simulate step progression
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev < 65) {
-          return prev + 1;
-        }
-        return prev;
-      });
-    }, 100);
 
-    return () => clearInterval(interval);
-  }, []);
-
-
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!chatMessage.trim()) return;
 
-    const newMessage = {
-      id: chatMessages.length + 1,
-      type: 'user' as const,
-      content: chatMessage
-    };
-
-    setChatMessages(prev => [...prev, newMessage]);
+    setLoading(true);
+    const chatresponse = await axios.post(`${BACKEND_URL}/chat`, {
+      prompt: chatMessage,
+      messages: llmMsg
+    })
+    const initllmres = chatresponse.data.response
+    setLlmMsg([...llmMsg, {
+      role: "user",
+      parts: [{text: chatMessage}]
+    }, {
+      role: "model",
+      parts: [{
+        text: initllmres
+      }]
+    }])
+    setSteps([...steps, ...parseXmll(initllmres)])
+    setLoading(false)
     setChatMessage('');
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
-        id: chatMessages.length + 2,
-        type: 'system' as const,
-        content: 'I understand your request. Let me update the website accordingly...'
-      };
-      setChatMessages(prev => [...prev, aiResponse]);
-    }, 1000);
   };
+  
+  const cutText = (text: string)=>{
+    return text.substring(0, text.indexOf("<boltArtifact>"))
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -198,12 +216,12 @@ export default function Build() {
             </Button>
             <Separator orientation="vertical" className="h-6" />
             <div>
-              <h1 className="text-lg font-semibold">Creating Your Website</h1>
-              <p className="text-sm text-gray-600 truncate max-w-md">"{prompt}"</p>
+              <h1 className="text-lg font-semibold">Repel</h1>
+              <p className="text-sm text-gray-600 truncate max-w-md">{prompt}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => setPreview(preview => !preview)} >
               <Eye className="w-4 h-4" />
               Preview
             </Button>
@@ -221,7 +239,7 @@ export default function Build() {
 
       <div className="flex h-[calc(100vh-80px)]">
         {/* Steps Sidebar */}
-        <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+        <div className="w-60 min-w-60 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
           {/* Generation Progress */}
           <div className="p-6 border-b border-gray-200">
             <div className="mb-6">
@@ -290,7 +308,8 @@ export default function Build() {
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-800'
                       }`}>
-                      {message.parts[0].text}
+                      {message.role==="user" && message.parts[0].text}
+                      {message.role==="model" && cutText(message.parts[0].text)}
                     </div>
                   </div>
                 ))}
@@ -318,12 +337,8 @@ export default function Build() {
           </div>
         </div>
 
-        {/* <CodeEditor fileStructure={{
-          name: "root",
-          type: "folder",
-          children: files,
-          path: ""
-        }} /> */}
+        {!preview && <CodeEditor fileStructure={files} />}
+        {preview && webcontainer!=undefined && <Preview webContainer={webcontainer} />}
       </div>
     </div>
   );

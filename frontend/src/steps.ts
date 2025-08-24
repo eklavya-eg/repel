@@ -121,7 +121,7 @@ export function parseXmll(response: string): Step[] {
         typee = StepType.CreateFile
         mainActions.push({
           id: ++id,
-          title: artifactAttrs.title,
+          title: actionAttrs.filePath.split("/").at(-1),
           type: typee,
           status: "pending",
           code: actionMatch[2].trim(),

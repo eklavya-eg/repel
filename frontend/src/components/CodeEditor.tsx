@@ -6,7 +6,7 @@ import { Badge, ChevronLeft, ChevronRight, Code, Eye, FileIcon, Folder, FolderOp
 import { useState } from "react";
 
 interface props {
-  fileStructure: FileNode
+  fileStructure: FileNode[]
 }
 export default function CodeEditor({
   fileStructure
@@ -15,6 +15,7 @@ export default function CodeEditor({
   const [selectedFile, setSelectedFile] = useState<string | null>('index.html');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['src', 'components']));
 
+  console.log(fileStructure)
 
   const toggleFolder = (folderPath: string) => {
     setExpandedFolders(prev => {
@@ -36,24 +37,34 @@ export default function CodeEditor({
       case 'ts': return 'typescript';
       case 'json': return 'json';
       case 'md': return 'markdown';
+      case 'jsx': return 'javascript';
+      case 'tsx': return 'typescript';
       default: return 'plaintext';
     }
   };
   const getFileContent = (filePath: string): string => {
-    const findFile = (node: FileNode, path: string[]): FileNode | null => {
-      if (path.length === 0) return node;
-      if (node.type === 'file') return null;
-
-      const [first, ...rest] = path;
-      const child = node.children?.find(c => c.name === first);
-      if (!child) return null;
-
-      return rest.length === 0 ? child : findFile(child, rest);
+    const findFile = (myFiles: FileNode[], pathNodes: string[]): FileNode | null => {
+      for (let i = 0; i < pathNodes.length; i++) {
+        let j = 0;
+        let filee: FileNode[] | undefined = myFiles;
+        while (j < i) {
+          filee = filee?.find(({ name, type }) => name === pathNodes[j] && type === 'folder')?.children
+          j++;
+        }
+        const filecheck = filee?.find(({ name, type }) => name === pathNodes[i] && type === "file")
+        if (filecheck) {
+          return filecheck;
+        }
+      }
+      return null
     };
-
-    const pathParts = filePath.split('/').filter(p => p !== 'my-website');
-    const file = findFile(fileStructure, pathParts);
-    return file?.content || '';
+    const pathParts = filePath.split('/');
+    console.log(pathParts)
+    // fileStructure.forEach((fileNode) => {
+    const file = findFile(fileStructure, pathParts)
+    if (file) { return file?.content || ''; }
+    // })
+    return '';
   };
   const renderFileTree = (node: FileNode, path: string = '', level: number = 0) => {
     const currentPath = path ? `${path}/${node.name}` : node.name;
@@ -76,7 +87,7 @@ export default function CodeEditor({
           {node.type === 'folder' ? (
             isExpanded ? <FolderOpen className="w-4 h-4 text-blue-500" /> : <Folder className="w-4 h-4 text-blue-500" />
           ) : (
-            <FileIcon fileName={node.name} />
+            <FileIcon className="w-4 h-4" fileName={node.name} />
           )}
           <span className="text-sm">{node.name}</span>
         </div>
@@ -93,49 +104,54 @@ export default function CodeEditor({
       {/* File Explorer & Code Editor */}
       <div className="flex-1 flex">
         {/* File Explorer */}
-        {!isFileExplorerCollapsed && (
-          <div className="w-80 bg-white border-r border-gray-200">
-            <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+        {/* File Explorer (collapsible with animation) */}
+        <div
+          className={`bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col overflow-hidden
+    ${isFileExplorerCollapsed ? "w-8" : "w-56"}`}
+        >
+          {/* Header */}
+          <div className="px-2 py-3 border-b border-gray-200 flex items-center justify-between">
+            {!isFileExplorerCollapsed && (
               <h3 className="text-sm font-semibold text-gray-700">Project Files</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsFileExplorerCollapsed(true)}
-                className="h-6 w-6 p-0"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-            </div>
-            <ScrollArea className="h-full">
-              <div className="p-2">
-                {renderFileTree(fileStructure)}
-              </div>
-            </ScrollArea>
-          </div>
-        )}
-
-        {/* Collapsed File Explorer Toggle */}
-        {isFileExplorerCollapsed && (
-          <div className="w-12 bg-white border-r border-gray-200 flex flex-col items-center py-3">
+            )}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsFileExplorerCollapsed(false)}
-              className="h-8 w-8 p-0"
+              onClick={() => setIsFileExplorerCollapsed(!isFileExplorerCollapsed)}
+              className="h-6 w-6 p-0 cursor-pointer"
             >
-              <ChevronRight className="w-4 h-4" />
+              {isFileExplorerCollapsed ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <ChevronLeft className="w-4 h-4" />
+              )}
             </Button>
+          </div>
+
+          {/* File Tree */}
+          {!isFileExplorerCollapsed && (
+            <ScrollArea className="h-full">
+              {fileStructure.map((fileStructureItem) => (
+                <div key={fileStructureItem.path} className="p-[1px]">
+                  {renderFileTree(fileStructureItem)}
+                </div>
+              ))}
+            </ScrollArea>
+          )}
+
+          {/* Label for Collapsed State */}
+          {isFileExplorerCollapsed && (
             <div className="mt-2 -rotate-90 text-xs text-gray-500 whitespace-nowrap">
               Files
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Code Editor */}
-        <div className="flex-1 bg-gray-900">
-          <div className="px-4 py-3 border-b border-gray-700 bg-gray-800 flex items-center justify-between">
+        <div className="flex-1 bg-stone-800">
+          <div className="px-4 py-3 border-b border-stone-800 bg-white flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-100">{selectedFile || 'No file selected'}</span>
+              <span className="text-sm font-medium text-black">{selectedFile || '/'}</span>
               {selectedFile && (
                 <Badge variant="secondary" className="text-xs">
                   {selectedFile.split('.').pop()?.toUpperCase()}
@@ -143,16 +159,14 @@ export default function CodeEditor({
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white">
-                <Eye className="w-4 h-4" />
-                Preview
-              </Button>
+
             </div>
           </div>
           <div className="h-[calc(100%-56px)]">
             {selectedFile ? (
               <Editor
                 height="100%"
+                width="100%"
                 language={getFileLanguage(selectedFile)}
                 value={getFileContent(selectedFile)}
                 theme="vs-dark"

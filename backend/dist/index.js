@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
 const genai_1 = require("@google/genai");
 const dotenv_1 = require("dotenv");
 const prompts_1 = require("./prompts");
@@ -22,6 +23,7 @@ const react_1 = require("./defaults/react");
 const app = (0, express_1.default)();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const ai = new genai_1.GoogleGenAI({ apiKey: GEMINI_API_KEY });
+app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 app.post("/template", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const prompt = req.body.prompt;
@@ -29,16 +31,18 @@ app.post("/template", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         model: "gemini-2.5-flash",
         contents: prompt,
         config: {
-            temperature: 1,
-            systemInstruction: "Return either react or node based on what do you think this project should be. Only return a single word either 'node' or 'react'. Do not return anything extra.",
+            temperature: 0.5,
+            systemInstruction: "Return either react or node based on what do you think this project should be more aligned to. Only return a single word either 'node' or 'react'. Do not return anything extra.",
             maxOutputTokens: 200,
             thinkingConfig: {
                 thinkingBudget: -1
             }
         }
     });
-    if (response.text) {
-        const ret = response.text.split("\n")[0].split(" ")[0];
+    const text = 'react';
+    if (text) {
+        // const ret = response.text.split("\n")[0].split(" ")[0]
+        const ret = 'react';
         if (ret === 'react') {
             return res.json({
                 prompts: [prompts_1.BASE_PROMPT, `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${react_1.basePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
@@ -47,7 +51,7 @@ app.post("/template", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         else if (ret === 'node') {
             return res.json({
-                prompts: [`Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${react_1.basePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
+                prompts: [`Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${node_1.basePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
                 uiPrompts: [node_1.basePrompt]
             });
         }
@@ -66,7 +70,8 @@ app.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             temperature: 1,
             thinkingConfig: {
                 thinkingBudget: -1
-            }
+            },
+            systemInstruction: (0, prompts_1.getSystemPrompt)()
         }
     });
     const response = yield chat.sendMessage({
