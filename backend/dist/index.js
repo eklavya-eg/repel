@@ -8,13 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __asyncValues = (this && this.__asyncValues) || function (o) {
-    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-    var m = o[Symbol.asyncIterator], i;
-    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
-    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
-    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -63,72 +56,55 @@ app.post("/template", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         message: "error"
     });
 }));
-// app.post("/chat", async (req, res) => {
-//   const prompt = req.body.prompt;
-//   const messages = req.body.messages;
+app.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const prompt = req.body.prompt;
+    const messages = req.body.messages;
+    const chat = ai.chats.create({
+        model: "gemini-2.5-flash",
+        history: messages,
+        config: {
+            temperature: 1,
+            thinkingConfig: {
+                thinkingBudget: -1
+            }
+        }
+    });
+    const response = yield chat.sendMessage({
+        message: prompt,
+    });
+    res.json({
+        response: response.text
+    });
+}));
+// async function main_() {
 //   const chat = ai.chats.create({
 //     model: "gemini-2.5-flash",
-//     history: messages,
+//     history: [
+//       {
+//         role: "user",
+//         parts: [{ text: BASE_PROMPT }],
+//       },
+//       {
+//         role: "user",
+//         parts: [{ text: reactBasePrompt }],
+//       },
+//     ],
 //     config: {
 //       temperature: 1,
+//       systemInstruction: getSystemPrompt(),
 //       // maxOutputTokens: 1024,
 //       thinkingConfig: {
 //         thinkingBudget: -1
 //       }
 //     }
-//   })
+//   });
 //   const response = await chat.sendMessageStream({
-//     message: prompt,
+//     message: "build frontend for real-time chat app",
 //   });
 //   for await (const chunks of response) {
 //     console.log(chunks.text)
 //   }
-// })
-function main() {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, e_1, _b, _c;
-        const chat = ai.chats.create({
-            model: "gemini-2.5-flash",
-            history: [
-                {
-                    role: "user",
-                    parts: [{ text: prompts_1.BASE_PROMPT }],
-                },
-                {
-                    role: "user",
-                    parts: [{ text: react_1.basePrompt }],
-                },
-            ],
-            config: {
-                temperature: 1,
-                systemInstruction: (0, prompts_1.getSystemPrompt)(),
-                // maxOutputTokens: 1024,
-                thinkingConfig: {
-                    thinkingBudget: -1
-                }
-            }
-        });
-        const response = yield chat.sendMessageStream({
-            message: "build frontend for real-time chat app",
-        });
-        try {
-            for (var _d = true, response_1 = __asyncValues(response), response_1_1; response_1_1 = yield response_1.next(), _a = response_1_1.done, !_a; _d = true) {
-                _c = response_1_1.value;
-                _d = false;
-                const chunks = _c;
-                console.log(chunks.text);
-            }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (!_d && !_a && (_b = response_1.return)) yield _b.call(response_1);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-    });
-}
-main();
+// }
 app.listen(3000, () => {
     console.log("✅ PORT -> 3000");
 });

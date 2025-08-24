@@ -148,7 +148,6 @@ export function parseXmll(response: string): Step[] {
       actions,
     })
   }
-
   return mainActions
 }
 

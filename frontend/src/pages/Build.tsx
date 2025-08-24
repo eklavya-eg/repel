@@ -9,10 +9,9 @@ import { Input } from "@/uicomponents/ui/input";
 import { ArrowLeft, Check, Clock, FileText, Folder, FolderOpen, Image, Code, Settings, Palette, Globe, Download, Eye, ChevronLeft, ChevronRight, Send, MessageSquare, Backpack } from "lucide-react";
 import { BACKEND_URL } from "@/config";
 import { parseXmll } from "@/steps";
-import { StepType, type Step, llmMessage, llmMessageText } from "@/types";
+import { StepType, basePrompt, type Step, type llmMessage } from "@/types";
 import axios from "axios";
 import CodeEditor from "@/components/CodeEditor";
-import { setDefaultAutoSelectFamily } from "net";
 import { type FileNode } from "@/types";
 
 export default function Build() {
@@ -28,10 +27,10 @@ export default function Build() {
     { id: 3, type: 'system', content: 'Building responsive layout components...' }
   ]);
   const [currentStep, setCurrentStep] = useState(0);
-  const [files, setFiles] = useState<FileNode[]>(0);
+  const [files, setFiles] = useState<FileNode[]>([]);
   const [llmMsg, setLlmMsg] = useState<llmMessage[]>([]);
   const [steps, setSteps] = useState<Step[]>([]);
-  const [templateSet, setTemplateSet] = useState<boolean>(false);
+  // const [templateSet, setTemplateSet] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const init = async () => {
     if (!prompt.trim()) {
@@ -40,11 +39,8 @@ export default function Build() {
     const response = await axios.post(`${BACKEND_URL}/template`, {
       prompt: prompt.trim()
     })
-    setTemplateSet(true);
+    // setTemplateSet(true);
     const { prompts, uiPrompts } = response.data;
-    // setSteps(parseXmll(uiPrompts[0]).map((step: Step) => (
-    //   { ...step }
-    // )));
     setSteps(parseXmll(uiPrompts[0]));
     setLlmMsg(prompts.map((msg: string) => {
       return {
@@ -68,19 +64,27 @@ export default function Build() {
     setLoading(false)
   }
 
+  const initi = async () => {
+    const parsed = parseXmll(basePrompt);
+    setSteps(parsed);
+  }
+
   useEffect(() => {
-    init();
+    initi();
   }, [])
 
   useEffect(() => {
     const myFiles: FileNode[] = [...files]
-    let updateHappened = false
-    steps.map(step => {
+    console.log(steps)
+    console.log("1", myFiles)
+    let updateHappened = false;
+    steps.map((step, index) => {
+      setProgress((index + 1) * 100 / steps.length)
       if (step.status === "pending" && step.type == StepType.CreateFile) {
+        updateHappened = true;
         const pathNodes: string[] = step.path?.split("/") ?? [];
-        let newFolder = ""
         if (pathNodes.length == 1 && step.code) {
-          const file = myFiles.find(({ name, path, type }) => name === step.title && step.path===path && type==='file')
+          const file = myFiles.find(({ name, path, type }) => name === step.title && step.path === path && type === 'file')
           if (!file) {
             myFiles.push({
               name: step.title,
@@ -92,412 +96,52 @@ export default function Build() {
             file.content = step.code
           }
         } else {
-          for (let i = 0; i < pathNodes.length-1; i++) {
-            let folder = myFiles.find(({name, type, content})=>name===pathNodes[i] && type==="folder" && content===undefined)
-            if(!folder){
-              
+          for (let i = 0; i < pathNodes.length; i++) {
+            if (i == pathNodes.length - 1) {
+              let j = 0;
+              let filee: FileNode[] | undefined = myFiles;
+              while (j < i) {
+                filee = filee?.find(({ name, type }) => name === pathNodes[j] && type === 'folder')?.children
+                j++;
+              }
+              const filecheck = filee?.find(({ name, type }) => name === pathNodes[i] && type === "file")
+              if (!filecheck) {
+                filee?.push({
+                  name: pathNodes[i],
+                  type: 'file',
+                  content: step.code,
+                  path: pathNodes.join("/")
+                })
+              } else {
+                filecheck.content = step.code
+              }
+            } else {
+              let j = 0;
+              let filee: FileNode[] | undefined = myFiles;
+              while (j < i) {
+                filee = filee?.find(({ name, type }) => name === pathNodes[j] && type === 'folder')?.children
+                j++;
+              }
+              const folder = filee?.find(({ name, type, content }) => name === pathNodes[i] && type === "folder" && content === undefined)
+              if (!folder) {
+                filee?.push({
+                  name: pathNodes[i],
+                  type: 'folder',
+                  children: [],
+                  path: pathNodes.slice(0, i + 1).join("/")
+                })
+              }
             }
-
-  
           }
         }
       }
     })
-  }, [steps])
-
-  const stepss: Step[] = [
-    {
-      id: 1,
-      title: 'Analyzing Requirements',
-      description: 'Understanding your website requirements and target audience',
-      type: StepType.CreateFile,
-      status: 'completed'
-    },
-    {
-      id: 2,
-      title: 'Creating Design System',
-      description: 'Generating color palette, typography, and layout structure',
-      type: StepType.CreateFile,
-      status: 'completed'
-    },
-    {
-      id: 3,
-      title: 'Building Site Structure',
-      description: 'Creating page hierarchy and navigation flow',
-      type: StepType.CreateFolder,
-      status: 'completed'
-    },
-    {
-      id: 4,
-      title: 'Generating Components',
-      description: 'Building reusable UI components and sections',
-      type: StepType.CreateFile,
-      status: 'active'
-    },
-    {
-      id: 5,
-      title: 'Adding Content',
-      description: 'Populating with relevant text, images, and media',
-      type: StepType.EditFile,
-      status: 'pending'
-    },
-    {
-      id: 6,
-      title: 'Optimization & Testing',
-      description: 'Ensuring performance, accessibility, and responsiveness',
-      type: StepType.RunScript,
-      status: 'pending'
-    },
-    {
-      id: 7,
-      title: 'Ready to Deploy',
-      description: 'Your website is ready for production',
-      type: StepType.RunScript,
-      status: 'pending'
+    if (updateHappened) {
+      console.log(myFiles)
+      setFiles(myFiles)
+      setSteps(steps.map((step) => { return { ...step, status: 'completed' } }))
     }
-  ];
-  const fileStructure: FileNode = {
-    name: 'my-website',
-    type: 'folder',
-    children: [
-      {
-        name: 'index.html',
-        type: 'file',
-        language: 'html',
-        content: `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="RTTTT5viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Beautiful Website</title>
-    <link rel="stylesheet" href="styles/main.css">
-</head>
-<body>
-    <header class="hero-section">
-        <nav class="navbar">
-            <div class="logo">MyBrand</div>
-            <ul class="nav-links">
-                <li><a href="#home">Home</a></li>
-                <li><a href="#about">About</a></li>
-                <li><a href="#services">Services</a></li>
-                <li><a href="#contact">Contact</a></li>
-            </ul>
-        </nav>
-        <div class="hero-content">
-            <h1>Welcome to My Amazing Website</h1>
-            <p>Crafted with precision and powered by AI</p>
-            <button class="cta-button">Get Started</button>
-        </div>
-    </header>
-    
-    <main>
-        <section id="about" class="section">
-            <div class="container">
-                <h2>About Us</h2>
-                <p>We create exceptional digital experiences...</p>
-            </div>
-        </section>
-        
-        <section id="services" class="section">
-            <div class="container">
-                <h2>Our Services</h2>
-                <div class="services-grid">
-                    <!-- Service cards will be generated here -->
-                </div>
-            </div>
-        </section>
-    </main>
-    
-    <footer class="footer">
-        <p>&copy; 2024 MyBrand. All rights reserved.</p>
-    </footer>
-    
-    <script src="scripts/main.js"></script>
-</body>
-</html>`
-      },
-      {
-        name: 'styles',
-        type: 'folder',
-        children: [
-          {
-            name: 'main.css',
-            type: 'file',
-            language: 'css',
-            content: `/* Modern, responsive CSS */
-:root {
-  --primary-color: #3b82f6;
-  --secondary-color: #1f2937;
-  --accent-color: #f59e0b;
-  --text-dark: #111827;
-  --text-light: #6b7280;
-  --bg-light: #f9fafb;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Inter', sans-serif;
-  line-height: 1.6;
-  color: var(--text-dark);
-}
-
-.hero-section {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 5%;
-}
-
-.logo {
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.nav-links {
-  display: flex;
-  list-style: none;
-  gap: 2rem;
-}
-
-.nav-links a {
-  color: white;
-  text-decoration: none;
-  transition: opacity 0.3s;
-}
-
-.nav-links a:hover {
-  opacity: 0.8;
-}
-
-.hero-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 2rem;
-}
-
-.hero-content h1 {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.hero-content p {
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
-  opacity: 0.9;
-}
-
-.cta-button {
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.3s;
-}
-
-.cta-button:hover {
-  transform: translateY(-2px);
-}
-
-.section {
-  padding: 4rem 0;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-.section h2 {
-  text-align: center;
-  margin-bottom: 3rem;
-  font-size: 2.5rem;
-}
-
-.services-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-}
-
-.footer {
-  background: var(--secondary-color);
-  color: white;
-  text-align: center;
-  padding: 2rem;
-}
-
-@media (max-width: 768px) {
-  .hero-content h1 {
-    font-size: 2rem;
-  }
-  
-  .nav-links {
-    display: none;
-  }
-}`
-          }
-        ]
-      },
-      {
-        name: 'scripts',
-        type: 'folder',
-        children: [
-          {
-            name: 'main.js',
-            type: 'file',
-            language: 'javascript',
-            content: `// Interactive features for the website
-document.addEventListener('DOMContentLoaded', function() {
-    // Smooth scrolling for navigation links
-    const navLinks = document.querySelectorAll('.nav-links a');
-    
-    navLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href').substring(1);
-            const targetElement = document.getElementById(targetId);
-            
-            if (targetElement) {
-                targetElement.scrollIntoView({
-                    behavior: 'smooth'
-                });
-            }
-        });
-    });
-    
-    // Add scroll effect to navbar
-    window.addEventListener('scroll', function() {
-        const navbar = document.querySelector('.navbar');
-        if (window.scrollY > 100) {
-            navbar.style.backgroundColor = 'rgba(31, 41, 55, 0.9)';
-            navbar.style.backdropFilter = 'blur(10px)';
-        } else {
-            navbar.style.backgroundColor = 'transparent';
-            navbar.style.backdropFilter = 'none';
-        }
-    });
-    
-    // Animate elements on scroll
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-    
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, observerOptions);
-    
-    // Observe all sections
-    document.querySelectorAll('.section').forEach(section => {
-        section.style.opacity = '0';
-        section.style.transform = 'translateY(30px)';
-        section.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(section);
-    });
-});`
-          }
-        ]
-      },
-      {
-        name: 'images',
-        type: 'folder',
-        children: [
-          {
-            name: 'hero-bg.jpg',
-            type: 'file'
-          },
-          {
-            name: 'logo.svg',
-            type: 'file'
-          },
-          {
-            name: 'about-image.jpg',
-            type: 'file'
-          }
-        ]
-      },
-      {
-        name: 'components',
-        type: 'folder',
-        children: [
-          {
-            name: 'header.html',
-            type: 'file',
-            language: 'html'
-          },
-          {
-            name: 'footer.html',
-            type: 'file',
-            language: 'html'
-          },
-          {
-            name: 'service-card.html',
-            type: 'file',
-            language: 'html'
-          }
-        ]
-      },
-      {
-        name: 'README.md',
-        type: 'file',
-        language: 'markdown',
-        content: `# My Beautiful Website
-
-A modern, responsive website generated by SiteForge AI.
-
-## Features
-
-- ✨ Modern, clean design
-- 📱 Fully responsive
-- ⚡ Fast loading
-- 🎨 Custom color scheme
-- 🔧 Easy to customize
-
-## Getting Started
-
-1. Open \`index.html\` in your browser
-2. Customize colors in \`styles/main.css\`
-3. Update content in \`index.html\`
-4. Add your own images to the \`images\` folder
-
-## Deployment
-
-This website is ready to deploy to any hosting platform:
-- Netlify
-- Vercel
-- GitHub Pages
-- Any web server
-
-Just upload all files and you're live!`
-      }
-    ]
-  };
+  }, [steps, files])
 
   useEffect(() => {
     // Simulate step progression
@@ -615,12 +259,13 @@ Just upload all files and you're live!`
                         </h3>
                         {step.status === 'completed' && (
                           <Badge variant="secondary" className="text-xs">
-                            {step.duration}
+                            2s
                           </Badge>
                         )}
                       </div>
                       <p className="text-xs text-gray-600 leading-relaxed">
-                        {step.description}
+                        {/* {step.description} */}
+                        Creating... Updating...
                       </p>
                     </div>
                   </div>
@@ -673,7 +318,12 @@ Just upload all files and you're live!`
           </div>
         </div>
 
-        <CodeEditor fileStructure={fileStructure} />
+        {/* <CodeEditor fileStructure={{
+          name: "root",
+          type: "folder",
+          children: files,
+          path: ""
+        }} /> */}
       </div>
     </div>
   );

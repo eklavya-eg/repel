@@ -35,7 +35,7 @@ app.post("/template", async (req, res) => {
       })
     } else if (ret === 'node') {
       return res.json({
-        prompts: [`Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
+        prompts: [`Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${nodeBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
         uiPrompts: [nodeBasePrompt]
       })
     }
@@ -45,60 +45,59 @@ app.post("/template", async (req, res) => {
   })
 })
 
-// app.post("/chat", async (req, res) => {
-//   const prompt = req.body.prompt;
-//   const messages = req.body.messages;
+app.post("/chat", async (req, res) => {
+  const prompt = req.body.prompt;
+  const messages = req.body.messages;
+  const chat = ai.chats.create({
+    model: "gemini-2.5-flash",
+    history: messages,
+    config: {
+      temperature: 1,
+      thinkingConfig: {
+        thinkingBudget: -1
+      },
+      systemInstruction: getSystemPrompt()
+    }
+  })
+  const response = await chat.sendMessage({
+    message: prompt,
+  });
+  res.json({
+    response: response.text
+  })
+})
+
+// async function main_() {
 //   const chat = ai.chats.create({
 //     model: "gemini-2.5-flash",
-//     history: messages,
+//     history: [
+//       {
+//         role: "user",
+//         parts: [{ text: BASE_PROMPT }],
+//       },
+//       {
+//         role: "user",
+//         parts: [{ text: reactBasePrompt }],
+//       },
+//     ],
 //     config: {
 //       temperature: 1,
+//       systemInstruction: getSystemPrompt(),
 //       // maxOutputTokens: 1024,
 //       thinkingConfig: {
 //         thinkingBudget: -1
 //       }
 //     }
-//   })
+//   });
+
 //   const response = await chat.sendMessageStream({
-//     message: prompt,
+//     message: "build frontend for real-time chat app",
 //   });
 //   for await (const chunks of response) {
 //     console.log(chunks.text)
 //   }
-// })
+// }
 
-async function main() {
-  const chat = ai.chats.create({
-    model: "gemini-2.5-flash",
-    history: [
-      {
-        role: "user",
-        parts: [{ text: BASE_PROMPT }],
-      },
-      {
-        role: "user",
-        parts: [{ text: reactBasePrompt }],
-      },
-    ],
-    config: {
-      temperature: 1,
-      systemInstruction: getSystemPrompt(),
-      // maxOutputTokens: 1024,
-      thinkingConfig: {
-        thinkingBudget: -1
-      }
-    }
-  });
-
-  const response = await chat.sendMessageStream({
-    message: "build frontend for real-time chat app",
-  });
-  for await (const chunks of response) {
-    console.log(chunks.text)
-  }
-}
-
-main()
 app.listen(3000, () => {
   console.log("✅ PORT -> 3000")
 })
