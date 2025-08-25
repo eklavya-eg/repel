@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/uicomponents/ui/button";
 import { Progress } from "@/uicomponents/ui/progress";
@@ -32,6 +32,11 @@ export default function Build() {
   const [steps, setSteps] = useState<Step[]>([]);
   const [preview, setPreview] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [llmMsg])
 
   // const initi = async () => {
   //   const parsed = parseXmll(basePrompt);
@@ -279,7 +284,7 @@ export default function Build() {
                         )}
                       </div>
                       <p className="text-xs text-gray-600 leading-relaxed">
-                        ...Updating...
+                        Updating...
                       </p>
                     </div>
                   </div>
@@ -288,52 +293,52 @@ export default function Build() {
             </ScrollArea>
           </div>
 
-          <div className="flex-1 flex flex-col">
-            <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2 flex-shrink-0">
               <MessageSquare className="w-4 h-4 text-gray-600" />
               <h3 className="text-sm font-semibold text-gray-700">AI Assistant</h3>
             </div>
-
-            <ScrollArea className="flex-1 p-4">
+            
+            <ScrollArea className="flex-1 p-4 h-36">
               <div className="space-y-3">
                 {llmMsg.map((message, index) => (
-
-                  <div hidden={index < 2} key={index} className={`flex ${message.role === "user" ? 'justify-end' : 'justify-start'
-                    }`}>
-                    <div className={`max-w-[80%] p-3 rounded-lg text-sm ${message.role === "user"
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-800'
-                      }`}>
+                  <div
+                    hidden={index < 2}
+                    key={index}
+                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[80%] p-3 rounded-lg text-sm ${message.role === "user"
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-100 text-gray-800"
+                        }`}
+                    >
                       {message.role === "user" && message.parts[0].text}
                       {message.role === "model" && cutText(message.parts[0].text)}
                     </div>
                   </div>
-
                 ))}
+                {/* 👇 this invisible div will be the scroll target */}
+                <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
 
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-gray-200 flex-shrink-0">
               <div className="flex gap-2">
                 <Input
                   placeholder="Ask me anything..."
                   value={chatMessage}
                   onChange={(e) => setChatMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                   className="flex-1"
                 />
-                <Button
-                  size="sm"
-                  onClick={handleSendMessage}
-                  disabled={!chatMessage.trim()}
-                >
+                <Button size="sm" onClick={handleSendMessage} disabled={!chatMessage.trim()}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
             </div>
           </div>
         </div>
-
         {!preview && <CodeEditor fileStructure={files} />}
         {preview && webcontainer != undefined && <Preview webContainer={webcontainer} />}
       </div>

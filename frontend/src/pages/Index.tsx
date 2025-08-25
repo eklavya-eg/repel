@@ -11,11 +11,9 @@ export default function Index() {
   const navigate = useNavigate();
 
   const handleCreateWebsite = async () => {
-    console.log("laksf;dj")
     if (!prompt.trim()) return;
     
     setIsLoading(true);
-    // Simulate a brief loading state for UX
     setTimeout(() => {
       navigate("/build", { state: { prompt } });
     }, 800);
@@ -30,12 +28,10 @@ export default function Index() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Animated Background */}
       <div className="absolute inset-0 gradient-bg-3 pattern-dots"></div>
       <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-blue-50/80 to-indigo-100/90"></div>
 
 
-      {/* Header */}
       <header className="relative z-10 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -52,7 +48,6 @@ export default function Index() {
         </div>
       </header>
 
-      {/* Hero Section */}
       <main className="relative z-10 px-6 py-12">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm text-blue-700 px-6 py-3 rounded-full text-sm font-semibold mb-8 gradient-border-slow pulse-glow">
@@ -66,7 +61,6 @@ export default function Index() {
           </h1>
           
 
-          {/* Main Input Section */}
           <div className="relative">
             <Card className="max-w-4xl mx-auto shadow-2xl border-0 bg-white/90 backdrop-blur-sm scale-hover">
               <CardContent className="p-10">
@@ -110,7 +104,6 @@ export default function Index() {
             </Card>
           </div>
 
-          {/* Example Prompts */}
           <div className="mt-16">
             <p className="text-sm text-gray-600 mb-6 font-medium">Try one of these examples:</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
@@ -137,7 +130,6 @@ export default function Index() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="relative z-10 px-6 py-10 bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center gap-3 mb-6">

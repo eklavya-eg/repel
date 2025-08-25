@@ -6,38 +6,61 @@ interface PreviewFrameProps {
 }
 
 export default function Preview({ webContainer }: PreviewFrameProps) {
-  // In a real implementation, this would compile and render the preview
   const [url, setUrl] = useState("");
 
-  async function main() {
-    const installProcess = await webContainer.spawn('npm', ['install']);
+async function main() {
+  const installProcess = await webContainer.spawn('npm', ['install']);
+  installProcess.output.pipeTo(new WritableStream({
+    write(data) {
+      console.log("install:", data);
+    }
+  }));
+  await installProcess.exit;
 
-    installProcess.output.pipeTo(new WritableStream({
-      write(data) {
-        console.log(data);
-      }
-    }));
+  const devProcess = await webContainer.spawn('npm', ['run', 'dev']);
+  devProcess.output.pipeTo(new WritableStream({
+    write(data) {
+      console.log("dev:", data);
+    }
+  }));
 
-    await webContainer.spawn('npm', ['run', 'dev']);
-
-    // Wait for `server-ready` event
-    webContainer.on('server-ready', (port, url) => {
-      // ...
-      console.log(url)
-      console.log(port)
-      setUrl(url);
-    });
-  }
+  webContainer.on('server-ready', (port, previewUrl) => {
+    console.log("✅ WebContainer server ready at:", previewUrl);
+    setUrl(previewUrl);
+  });
+} 
 
   useEffect(() => {
     main()
   }, [])
   return (
-    <div className="h-full flex items-center justify-center text-gray-400">
-      {!url && <div className="text-center">
-        <p className="mb-2">Loading...</p>
-      </div>}
-      {url && <iframe width={"100%"} height={"100%"} src={url} />}
+    <div className="h-full w-full flex flex-col">
+      {/* Top bar */}
+      <div className="w-full flex items-center justify-between bg-gray-100 p-2 shadow-md">
+        <input
+          placeholder="/"
+          value={url ?? ""}
+          onChange={(e) => setUrl(e.target.value)}
+          className="w-full max-w-lg px-3 py-1 rounded-md border border-gray-300 focus:outline-none focus:ring focus:ring-blue-400"
+        />
+
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 w-full">
+        {!url && (
+          <div className="flex items-center justify-center h-full text-gray-400">
+            <p className="mb-2">Loading...</p>
+          </div>
+        )}
+        {url && (
+          <iframe
+            className="w-full h-full border-0"
+            src={url}
+          />
+        )}
+      </div>
     </div>
+
   );
 }
