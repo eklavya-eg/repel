@@ -14,7 +14,7 @@ The system is built with a **frontend + backend architecture** and integrates th
 
 ## 🛠️ Tech Stack
 - **Backend:** Node.js (Express)  
-- **Frontend:** React + Vite (or your stack if different)  
+- **Frontend:** React + Vite
 - **LLM:** Gemini API  
 
 ---
