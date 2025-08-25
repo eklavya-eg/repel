@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/uicomponents/ui/button";
 import { Textarea } from "@/uicomponents/ui/textarea";
 import { Card, CardContent } from "@/uicomponents/ui/card";
-import { ArrowRight, Sparkles, Code, Globe, Zap, Star, Rocket, Palette } from "lucide-react";
+import { ArrowRight, Sparkles, Code, Star, Rocket, Palette } from "lucide-react";
 
 export default function Index() {
   const [prompt, setPrompt] = useState("");
@@ -23,9 +23,9 @@ export default function Index() {
 
   const examplePrompts = [
     "Create a modern portfolio website for a graphic designer",
-    "An e-commerce store for handmade jewelry",
-    "A SaaS landing page for a productivity app",
-    "A restaurant website with online ordering"
+    "Create an e-commerce store for handmade jewelry",
+    "Create a SaaS landing page for a productivity app",
+    "Create a restaurant website with online ordering"
   ];
 
   return (
